@@ -27,11 +27,13 @@
   #status{color:var(--muted);font-size:20px;margin-left:auto}
   .row{display:flex;gap:14px;align-items:center}
   .row input{flex:1}
-  #groups{display:flex;gap:12px;overflow-x:auto;padding:8px 4px;scrollbar-width:none}
-  #groups::-webkit-scrollbar{display:none}
-  #groups button{white-space:nowrap;padding:10px 20px;font-size:20px}
-  #groups button.active{background:var(--accent);color:#fff}
-  #groups button.active:focus{background:#2563eb}
+  #presets,#groups{display:flex;gap:12px;overflow-x:auto;padding:8px 4px;scrollbar-width:none;align-items:center}
+  #presets::-webkit-scrollbar,#groups::-webkit-scrollbar{display:none}
+  #presets button,#groups button{white-space:nowrap;padding:10px 20px;font-size:20px}
+  #presets .lbl{color:var(--muted);font-size:18px;white-space:nowrap;margin-right:4px}
+  #presets button{background:#101624;border-color:#243049}
+  #presets button.active,#groups button.active{background:var(--accent);color:#fff}
+  #presets button.active:focus,#groups button.active:focus{background:#2563eb}
 
   #channels{flex:1;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:18px;padding:10px 6px 40px;scrollbar-width:none}
   #channels::-webkit-scrollbar{display:none}
@@ -73,12 +75,12 @@
     <div id="status">Aucune playlist chargée</div>
   </header>
   <div class="row">
-    <input id="url" type="url" placeholder="URL de la playlist M3U / M3U8 (OK pour taper)" />
+    <input id="url" type="url" placeholder="Ou ton URL de playlist M3U / M3U8 (OK pour taper)" />
     <button id="btn-load">Charger</button>
-    <button id="btn-demo" title="Exemple : chaînes publiques canadiennes (iptv-org)">Exemple</button>
   </div>
+  <div id="presets"></div>
   <div id="groups"></div>
-  <div id="channels"><div id="empty">Entre l'URL d'une playlist M3U puis appuie sur « Charger ».<br><br>Télécommande : flèches pour naviguer, OK pour choisir, Retour pour revenir.</div></div>
+  <div id="channels"><div id="empty">Choisis une liste ci-dessus, ou entre l'URL d'une playlist M3U puis « Charger ».<br><br>Télécommande : flèches pour naviguer, OK pour choisir, Retour pour revenir.</div></div>
 </div>
 
 <!-- ÉCRAN LECTEUR -->
@@ -114,7 +116,19 @@ const S = {
   inPlayer: false
 };
 const $ = s => document.querySelector(s);
-const DEMO = 'https://iptv-org.github.io/iptv/countries/ca.m3u';
+const BASE = 'https://iptv-org.github.io/iptv/';
+const PRESETS = [
+  { name: '🇨🇦 Canada',      url: BASE + 'countries/ca.m3u' },
+  { name: '🗣️ Français',     url: BASE + 'languages/fra.m3u' },
+  { name: '🇫🇷 France',      url: BASE + 'countries/fr.m3u' },
+  { name: '🇺🇸 États-Unis',  url: BASE + 'countries/us.m3u' },
+  { name: '📰 Actualités',   url: BASE + 'categories/news.m3u' },
+  { name: '🏒 Sports',       url: BASE + 'categories/sports.m3u' },
+  { name: '🧸 Enfants',      url: BASE + 'categories/kids.m3u' },
+  { name: '🎵 Musique',      url: BASE + 'categories/music.m3u' },
+  { name: '🎬 Films',        url: BASE + 'categories/movies.m3u' },
+  { name: '🌍 Tout',         url: BASE + 'index.m3u' }
+];
 
 /* =========================================================
    M3U
@@ -152,7 +166,8 @@ async function loadPlaylist(url){
     localStorage.setItem('iptv_url', url);
     localStorage.setItem('iptv_cache', JSON.stringify(ch).slice(0, 4_000_000)); // cache (limité)
     S.group = 'Tous';
-    renderGroups(); renderChannels();
+    $('#url').value = url;
+    renderPresets(); renderGroups(); renderChannels();
     setStatus(ch.length + ' chaînes');
     toast('Playlist chargée : ' + ch.length + ' chaînes');
     const first = $('#channels .play'); if (first) first.focus();
@@ -166,6 +181,17 @@ async function loadPlaylist(url){
    RENDU LISTE
    ========================================================= */
 function setStatus(t){ $('#status').textContent = t; }
+
+function renderPresets(){
+  const p = $('#presets'); p.innerHTML = '<span class="lbl">Listes :</span>';
+  PRESETS.forEach(pr => {
+    const b = document.createElement('button');
+    b.textContent = pr.name;
+    b.className = pr.url === S.playlistUrl ? 'active' : '';
+    b.onclick = () => loadPlaylist(pr.url);
+    p.appendChild(b);
+  });
+}
 
 function renderGroups(){
   const groups = ['Tous', '★ Favoris', ...new Set(S.channels.map(c => c.group))];
@@ -344,14 +370,14 @@ function toast(msg){
   clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('show'), 2200);
 }
 $('#btn-load').onclick = () => loadPlaylist($('#url').value.trim());
-$('#btn-demo').onclick = () => { $('#url').value = DEMO; loadPlaylist(DEMO); };
-
 (function init(){
   $('#url').value = S.playlistUrl;
+  renderPresets();
   const cache = localStorage.getItem('iptv_cache');
   if (cache){
     try { S.channels = JSON.parse(cache); renderGroups(); renderChannels(); setStatus(S.channels.length + ' chaînes (cache)'); } catch(e){}
   }
+  if (!S.channels.length){ loadPlaylist(PRESETS[0].url); return; } // premier lancement : Canada
   const first = $('#channels .play') || $('#btn-load');
   first.focus();
 })();
