@@ -1,0 +1,29 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.ultra631.iptvtv'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.ultra631.iptvtv"
+        minSdk 22          // Fire TV Stick (Fire OS 5+) et Android TV
+        targetSdk 34
+        versionCode 1
+        versionName "1.0"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            // Signé avec la clé debug pour le sideload (suffisant pour un usage perso)
+            signingConfig signingConfigs.debug
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
